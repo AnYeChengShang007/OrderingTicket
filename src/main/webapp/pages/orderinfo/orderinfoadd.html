@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Insert title here</title>
+<script src="../../scripts/boot.js" type="text/javascript"></script>
+<style type="text/css">
+html, body {
+	padding: 0;
+	margin: 0;
+	border: 0;
+	height: 100%;
+	overflow: hidden;
+}
+</style>
+
+</head>
+<body>
+	<form id="form1" method="post">
+		<fieldset style="border: solid 1px #aaa; padding: 3px;">
+			<legend>新增订票信息</legend>
+			<div style="padding: 5px;"></div>
+			<table>
+				<tr>
+					<td style="width: 80px;">车次</td>
+					<td><input name="ticketid" onValuechanged="countPrice"
+						id="ticketid" url="/ticketinfolist?method=getchecklist"
+						emptyText="请选择..." textField="id" valueField="id"
+						class="mini-combobox" /></td>
+				</tr>
+				<tr>
+					<td style="width: 80px;">姓名</td>
+					<td style="width: 150px;"><input name="name" required="true"
+						class="mini-textbox" /></td>
+					<td style="width: 80px;">身份证号</td>
+					<td style="width: 150px;"><input name="idcard" required="true"
+						vtype="maxLength:18;minLength:18" class="mini-textbox" /></td>
+				</tr>
+				<tr>
+					<td style="width: 80px;">手机号</td>
+					<td style="width: 150px;"><input name="phone" required="true"
+						vtype="maxLength:11;minLength:11" class="mini-textbox" /></td>
+					<div>
+						<td style="width: 80px;">携带儿童</td>
+						<td style="width: 150px;"><select name="havechild"
+							id="havechild" onValuechanged="changeChildButtom"
+							class="mini-radiobuttonlist">
+								<option value="1">是</option>
+								<option value="0">否</option>
+						</select></td>
+					</div>
+				</tr>
+				<tr>
+					<td style="width: 80px;">应付款</td>
+					<td style="width: 150px;"><input name="payment" id="payment"
+						allowInput="false" required="true" class="mini-textbox" /></td>
+					<div id="childnumber">
+						<td style="width: 80px;" id="childnumbertitle">儿童数量</td>
+						<td style="width: 150px;"><input name="childnumber"
+							onValuechanged="countPrice2" id="childnumber"
+							class="mini-spinner" minValue="1" maxValue="3" /></td>
+					</div>
+
+
+				</tr>
+				<tr>
+					<td style="width: 80px;">订票时间</td>
+					<td style="width: 150px;"><input id="date2"
+						class="mini-textbox" format="yyyy-MM-dd hh:mm:ss" name="ordertime"
+						timeFormat="hh:mm:ss" showTime="true" required="true"
+						allowInput="false" /></td>
+				</tr>
+			</table>
+		</fieldset>
+		<div style="text-align: center; padding: 10px;">
+			<a class="mini-button" onclick="onOk"
+				style="width: 60px; margin-right: 20px;">确定</a> <a
+				class="mini-button" onclick="onCancel" style="width: 60px;">取消</a>
+		</div>
+	</form>
+	<script type="text/javascript">
+		mini.parse();
+		var form = new mini.Form("form1");
+		var str = location.search.substr(1);
+		var old = 0;
+		if (str.split("&")[0].indexOf('tid') != -1) {
+			var id = str.split("&")[0].substr(4);
+			mini.get("ticketid").setValue(id);
+			$.ajax({
+				url : "/ticketinfolist?method=getone&id="+id,
+				cache : false,
+				async:false,
+				success : function(res) {
+					var e = mini.decode(res);
+					old = e.price;
+					console.log(e.price)
+				}
+			});
+		}
+
+		mini.get("date2").setValue(
+				mini.formatDate(new Date(), 'yyyy-MM-dd hh:mm:ss'));
+		function SaveData() {
+			var o = form.getData();
+			form.validate();
+			o.ordertime = mini.parseDate(o.ordertime)
+			o.ordertime = mini.formatDate(o.ordertime, 'yyyy-MM-dd hh:mm:ss')
+			if (form.isValid() == false)
+				return;
+			var json = mini.encode(o);
+			$.ajax({
+				url : "/orderinfolist?method=save",
+				type : 'post',
+				data : {
+					data : json
+				},
+				cache : false,
+				success : function(text) {
+					mini.confirm(text, "提示", function() {
+						CloseWindow("save");
+					});
+				}
+			});
+		}
+		function CloseWindow(action) {
+			if (window.CloseOwnerWindow)
+				return window.CloseOwnerWindow(action);
+			else
+				window.close();
+		}
+
+		function onOk(e) {
+			SaveData();
+		}
+
+		function onCancel(e) {
+			CloseWindow("cancel");
+		}
+
+		function changeChildButtom(e) {
+			if (e.value == 0) {
+				mini.get("childnumber").hide();
+				mini.get("payment").setValue(old);
+			} else {
+				mini.get("childnumber").show();
+				mini.get("payment").setValue(old * (1 + 0.5));
+			}
+		}
+
+		
+
+		function countPrice(e) {
+			var price = e.selected.price
+			old = price;
+			if (mini.get("havechild").value == 1) {
+				var number = mini.get("childnumber").value;
+				price = (1 + number * 0.5) * price;
+			}
+			mini.get("payment").setValue(price);
+
+		}
+
+		function countPrice2(e) {
+			var num = mini.get("childnumber").value;
+			var price = old * (1 + 0.5 * num);
+			mini.get("payment").setValue(price);
+		}
+	</script>
+</body>
+</html>

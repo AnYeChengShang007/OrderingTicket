@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Insert title here</title>
+<script src="../../scripts/boot.js" type="text/javascript"></script>
+<style type="text/css">
+html, body {
+	padding: 0;
+	margin: 0;
+	border: 0;
+	height: 100%;
+	overflow: hidden;
+}
+</style>
+
+</head>
+<body>
+	<form id="form1" method="post">
+		<fieldset style="border: solid 1px #aaa; padding: 3px;">
+			<legend>新增车次信息</legend>
+			<div style="padding: 5px;"></div>
+			<table>
+				<tr>
+					<td style="width: 80px;">车次:</td>
+					<td style="width: 150px;"><input name="id" allowInput="false"
+						class="mini-textbox" vtype="maxLength:6;minLength:6" /></td>
+					<td style="width: 80px;">起点:</td>
+					<td style="width: 150px;"><input name="begin"
+						allowInput="false" id="begin" onvalidation="positionValidation"
+						class="mini-textbox" /></td>
+				</tr>
+				<tr>
+					<td style="width: 80px;">出发时间:</td>
+					<td style="width: 150px;"><input name="starttime"
+						allowInput="false" ondrawdate="onDrawDate" class="mini-datepicker"
+						nullValue="null" format="yyyy-MM-dd hh:mm" timeFormat="hh:mm"
+						showTime="true" showClearButton="false" /></td>
+					<td style="width: 80px;">终点:</td>
+					<td style="width: 150px;"><input name="end" allowInput="false"
+						id="end" onvalidation="positionValidation" class="mini-textbox" /></td>
+				</tr>
+				<tr>
+					<td style="width: 80px;">车程:</td>
+					<td style="width: 150px;"><input name="distance"
+						required="true" onvalidation="numberCheck" class="mini-spinner"
+						vtype="int" minValue="20" /></td>
+					<td style="width: 80px;">大约用时:</td>
+					<td style="width: 150px;"><input name="time" required="true"
+						onvalidation="numberCheck" vtype="int" class="mini-textbox" />
+					<td>分钟
+				</tr>
+				<tr>
+					<td styl e="width: 80px;">票价:</td>
+					<td style="width: 150px;"><input name="price" required="true"
+						onvalidation="numberCheck" vtype="int" class="mini-textbox" /></td>
+					<td style="width: 80px;">余票:</td>
+					<td style="width: 150px;"><input name="remain"
+						allowInput="false" class="mini-spinner" minValue="1" maxValue="48" /></td>
+				</tr>
+
+			</table>
+		</fieldset>
+		<div style="text-align: center; padding: 10px;">
+			<a class="mini-button" onclick="onOk"
+				style="width: 60px; margin-right: 20px;">确定</a> <a
+				class="mini-button" onclick="onCancel" style="width: 60px;">取消</a>
+		</div>
+	</form>
+	<script type="text/javascript">
+		mini.parse();
+		var form = new mini.Form("form1");
+		
+		
+		setData();
+		function setData() {
+			var str = location.search.substr(1);
+			var id = str.split("&")[0].substr(3);
+			$.ajax({
+				url : "/ticketinfolist?method=getone&id=" + id,
+				cache : false,
+				success : function(text) {
+					var o = mini.decode(text);
+					form.setData(o);
+				}
+			});
+		}
+		
+		function SaveData() {
+			var o = form.getData();
+			o.starttime = mini.formatDate(o.starttime,'yyyy-MM-dd hh:mm:ss');
+			form.validate();
+			if (form.isValid() == false)
+				return;
+			var json = mini.encode(o);
+			$.ajax({
+				url : "/ticketinfolist?method=update",
+				type : 'post',
+				data : {
+					data : json
+				},
+				cache : false,
+				success : function(text) {
+					mini.confirm(text, "提示", function() {
+						CloseWindow("save");
+					});
+				}
+			}); 
+		}
+		
+		function onDrawDate(e) {
+            var date = e.date;
+            var d = new Date();
+
+            if (date.getTime() < d.getTime()) {
+                e.allowSelect = false;
+            }
+        }
+		
+		function CloseWindow(action) {
+			if (window.CloseOwnerWindow)
+				return window.CloseOwnerWindow(action);
+			else
+				window.close();
+		}
+
+		function onOk(e) {
+			SaveData();
+		}
+
+		function onCancel(e) {
+			CloseWindow("cancel");
+		}
+		
+		function onIdValidation(e){
+			id = e.value;
+			var chara = id.substr(0,2);
+			var number = id.substr(2,4);
+			for(i in chara){
+				if(!(chara[i]>='a' && chara[i]<='z' || chara[i]>='A' && chara[i]<='Z')){
+					 e.errorText = "2位英文+4位数字";
+	                    e.isValid = false;
+				}
+			}
+			for(i in number){
+				if(!(number[i]>='0' && number[i]<='9')){
+					 e.errorText = "2位英文+4位数字";
+	                    e.isValid = false;
+				}
+			}
+			
+			$.ajax({
+				url : "/ticketinfolist?method=checkId&id="+id,
+				type : 'get',
+				cache : false,
+				async : false,
+				success : function(res) {
+					if(res=='false'){
+						 e.errorText = "已存在该id";
+		                 e.isValid = false;
+					}
+				}
+			});
+		}
+		
+		function positionValidation(e){
+			var begin = mini.get("begin").value;
+			var end = mini.get("end").value;
+			if(begin!='' && end!='' && begin==end){
+				e.errorText = "起点终点不可相同";
+                e.isValid = false;
+			}
+		}
+		
+		function numberCheck(e){
+			if(e.value<=0){
+				e.errorText = "必须为正整数";
+                e.isValid = false;
+			}
+		}
+		
+		
+	</script>
+</body>
+</html>

@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>xxxx</title>
+<script src="../../scripts/boot.js" type="text/javascript"></script>
+<style type="text/css">
+html, body {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+}
+
+.gray {
+	color: gray;
+}
+</style>
+</head>
+<body>
+	<div class="mini-toolbar" style="padding: 2px; border-bottom: 0;">
+		<table style="width: 100%;">
+			<tr>
+				<td style="width: 100%;"><a class="mini-button" onclick="add"
+					iconCls="icon-save" plain="true">新增</a><a class="mini-button" onclick="multidel"
+					iconCls="icon-remove" plain="true">删除</a></td>
+				<td style="white-space: nowrap;">&nbsp;起点:&nbsp;<input
+					id="begin" class="mini-textbox" />&nbsp;终点:&nbsp;<input id="end"
+					class="mini-textbox" /> <input name="birthday" id="starttime"
+					class="mini-datepicker" emptyText="请选择日期" /> <a
+					class="mini-button" iconCls="icon-search" plain="true"
+					onclick="onSearch()">查询</a><a class="mini-button"
+					iconCls="icon-refresh" plain="true" onclick="refresh()">清空</a></td>
+			</tr>
+		</table>
+	</div>
+	<div class="mini-fit">
+
+		<div id="datagrid1" class="mini-datagrid"
+			style="width: 100%; height: 100%;" url="/ticketinfolist"
+			sizeList="[5,10,20]" multiSelect="true" pageSize="10">
+			<div property="columns">
+				<div type="checkcolumn"></div>
+				<div type="indexcolumn" width="25">序</div>
+				<div field="id" width="100%" headerAlign="center" align="center">车次</div>
+				<div field="begin" width="100%" headerAlign="center" align="center">起点</div>
+				<div field="end" width="100%" headerAlign="center" align="center">终点</div>
+				<div field="starttime" width="100%" headerAlign="center"
+					align="center" renderer="startTimeRenderer" allowSort="true">出发时间</div>
+				<div field="distance" width="100%" headerAlign="center"
+					renderer="distanceRenderer" align="center">车程</div>
+				<div field="time" width="100%" headerAlign="center" align="center"
+					renderer="timeRenderer">大约用时</div>
+				<div field="price" width="100%" headerAlign="center" align="center">票价</div>
+				<div field="remain" width="100%" headerAlign="center" align="center">余票</div>
+				<div width="100%" headerAlign="center" align="center"
+					renderer="onActionRenderer">操作按钮</div>
+			</div>
+		</div>
+
+	</div>
+	<script type="text/javascript">
+		mini.parse();
+		var grid = mini.get("datagrid1");
+		grid.load();
+
+		function distanceRenderer(e) {
+			return "大约" + e.value + "公里";
+		}
+
+		function startTimeRenderer(e) {
+			if (e.value < new Date()) {
+				e.rowCls = "gray";
+			}
+			return mini.formatDate(e.value, 'yyyy-MM-dd hh:mm');
+		}
+
+		function timeRenderer(e) {
+			var time = e.value;
+			var hour = time / 60;
+			var min = time % 60;
+			if (hour < 1) {
+				return min + "分钟";
+			} else {
+				return hour.toFixed(0) + "小时" + min + "分钟";
+			}
+		}
+
+		function onActionRenderer(e) {
+			var grid = e.sender;
+			var record = e.record;
+			var uid = record._uid;
+			var rowIndex = e.rowIndex;
+			var s = '';
+			if (record.starttime < new Date()) {
+				s = '<a class="mini-button" href="javascript:delRow(\'' + uid
+						+ '\')">删除</a> ';
+			} else {
+				s = '<a class="mini-button" href="javascript:editRow(\'' + uid
+						+ '\')">修改</a> '
+						+ '<a class="mini-button" href="javascript:delRow(\''
+						+ uid + '\')">删除</a> '
+						+ '<a class="mini-button" href="javascript:order(\''
+						+ uid + '\')">订票</a> ';
+			}
+
+			return s;
+		}
+		function onSearch() {
+			var begin = mini.get("begin").value;
+			var end = mini.get("end").value;
+			var starttime = mini.get("starttime").value;
+			starttime = mini.formatDate(starttime, 'yyyy-MM-dd')
+			grid.load({
+				begin : begin,
+				end : end,
+				starttime : starttime
+			});
+		}
+
+		function editRow(uid) {
+			var id = grid.getRowByUid(uid).id;
+			mini.open({
+				url : "/pages/ticketinfo/ticetinfoedit.html?id=" + id,
+				title : "修改车次信息",
+				width : 600,
+				height : 400,
+				allowResize : false,
+				onload : function() {
+				},
+				ondestroy : function(action) {
+					grid.reload();
+				}
+			});
+		}
+
+		function add() {
+			mini.open({
+				url : "/pages/ticketinfo/ticketinfoadd.html",
+				title : "新增车次信息",
+				width : 600,
+				height : 400,
+				allowResize : false,
+				onload : function() {
+				},
+				ondestroy : function(action) {
+					grid.reload();
+				}
+			});
+		}
+
+		function CloseWindow(action) {
+			if (window.CloseOwnerWindow)
+				return window.CloseOwnerWindow(action);
+			else
+				window.close();
+		}
+
+		function delRow(uid) {
+			var id = grid.getRowByUid(uid).id;
+			mini.confirm("确定删除吗", "提示", function(e) {
+				if (e == 'ok') {
+					$.ajax({
+						url : "/ticketinfolist?method=del&id=" + id,
+						type : 'post',
+						cache : false,
+						success : function(text) {
+							mini.confirm(text, "提示", function() {
+								grid.reload();
+								CloseWindow("save");
+							});
+						}
+					});
+				}
+			});
+		}
+
+		function order(uid) {
+			var id = grid.getRowByUid(uid).id;
+			mini.open({
+				url : "/pages/orderinfo/orderinfoadd.html?tid=" + id,
+				title : "新增订票",
+				width : 600,
+				height : 400,
+				allowResize : false,
+				onload : function() {
+				},
+				ondestroy : function(action) {
+					grid.reload();
+				}
+			});
+		}
+		
+		function multidel(){
+			
+		}
+
+		function refresh() {
+			grid.reload();
+		}
+	</script>
+</body>
+</html>
