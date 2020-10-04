@@ -1,6 +1,6 @@
 [
-	{ id: "ticket", text: "车票信息管理", iconCls: "icon-add"},
-	{ id: "list", pid: "ticket", text: "车次信息列表", iconCls: "icon-add", url: "/pages/ticketinfo/ticketinfolist.html" },
-	{ id: "order", text: "订票信息管理", iconCls: "icon-add"},
-	{ id: "list", pid: "order", text: "车次信息列表", iconCls: "icon-add", url: "/pages/orderinfo/orderinfolist.html" },
+	{ id: "ticket", text: "车票信息管理", iconCls: "icon-node"},
+	{ id: "list", pid: "ticket", text: "车次信息列表", iconCls: "icon-new", url: "/pages/ticketinfo/ticketinfolist.html" },
+	{ id: "order", text: "订票信息管理", iconCls: "icon-node"},
+	{ id: "list", pid: "order", text: "车次信息列表", iconCls: "icon-new", url: "/pages/orderinfo/orderinfolist.html" },
 ]
